@@ -28,6 +28,14 @@ class PackCollectionViewController: UICollectionViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupCollectionView()
+        addGestureRecognisers()
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        updateVisibleCells(visibleCells: (collectionView?.visibleCells)! as! [PackCollectionViewCell])
+    }
+
+    func setupCollectionView(){
         self.collectionView!.register(PackCollectionViewCell.self, forCellWithReuseIdentifier: "PackCell")
         let layout = UICollectionViewFlowLayout()
         layout.itemSize = cellSize
@@ -36,14 +44,10 @@ class PackCollectionViewController: UICollectionViewController {
         layout.minimumInteritemSpacing = 0.0
         self.collectionView?.setCollectionViewLayout(layout, animated: true)
         self.collectionView?.reloadData()
+    }
+    
+    func addGestureRecognisers() {
         blurTapRecognizer.addTarget(self, action: #selector(self.reverseCellSelect(_:)))
-    }
-    override func viewDidAppear(_ animated: Bool) {
-        updateVisibleCells(visibleCells: (collectionView?.visibleCells)! as! [PackCollectionViewCell])
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
     }
 
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -79,15 +83,7 @@ class PackCollectionViewController: UICollectionViewController {
         let cell = collectionView.cellForItem(at: indexPath) as! PackCollectionViewCell
         cellRecordIndexPath = indexPath
 
-        //Add mask
-        blurEffectView.effect = blurEffect
-        blurEffectView.frame = self.view.bounds
-        blurEffectView.tag = 1
-        blurEffectView.isUserInteractionEnabled = true
-        blurEffectView.addGestureRecognizer(blurTapRecognizer)
-        
-        collectionView.superview?.addSubview(blurEffectView)
-        blurEffectView.alpha = 0
+        addBlurView(collectionView: collectionView)
         UIView.animate(withDuration: 0.3, animations: {
             self.animating = true
             self.blurEffectView.alpha = 1.0
@@ -127,6 +123,16 @@ class PackCollectionViewController: UICollectionViewController {
         animation.startAnimation()
     }
     
+    func addBlurView(collectionView :UICollectionView) {
+        blurEffectView.effect = blurEffect
+        blurEffectView.frame = self.view.bounds
+        blurEffectView.tag = 1
+        blurEffectView.isUserInteractionEnabled = true
+        blurEffectView.addGestureRecognizer(blurTapRecognizer)
+        collectionView.superview?.addSubview(blurEffectView)
+        blurEffectView.alpha = 0
+    }
+    
     @objc func reverseCellSelect(_ sender: UITapGestureRecognizer) {
         print("Working")
         let cell = collectionView?.cellForItem(at: self.cellRecordIndexPath) as! PackCollectionViewCell
@@ -135,7 +141,8 @@ class PackCollectionViewController: UICollectionViewController {
         animation.addAnimations {
             self.previewPack.frame = self.tempCellRect
             self.blurEffectView.alpha = 0
-            self.previewPack.transform = CGAffineTransform.identity
+            //self.previewPack.transform = CGAffineTransform.identity
+            //self.previewPack.transform = CGAffineTransform(scaleX: 1, y: 1)
         }
         animation.addCompletion {_ in
             cell.backgroundPack.isHidden = false
