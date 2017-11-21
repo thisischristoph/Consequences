@@ -21,6 +21,7 @@ class PackCollectionViewController: UICollectionViewController {
     let blurEffect = UIBlurEffect(style: UIBlurEffectStyle.regular)
     let blurEffectView = UIVisualEffectView()
     let previewPack = UIImageView()
+    var backPreviewPack = UIImageView()
     var animating = false
     let blurTapRecognizer = UITapGestureRecognizer()
     var absoluteForgroundFrame = CGPoint()
@@ -119,9 +120,24 @@ class PackCollectionViewController: UICollectionViewController {
         animation.addCompletion {_ in
             self.animating = false
             self.enableUserInteraction()
+            self.flipCardAnimation()
             
         }
         animation.startAnimation()
+    }
+    
+    func flipCardAnimation(){
+//        backPreviewPack.frame = self.previewPack.frame
+//        backPreviewPack.layer.cornerRadius = self.previewPack.layer.cornerRadius
+//        backPreviewPack.backgroundColor = .blue
+//        let transitionOptions = UIViewAnimationOptions.transitionFlipFromLeft
+//        UIView.transition(with: (self.collectionView?.superview)!, duration: 0.5, options: transitionOptions, animations: {
+//            self.previewPack.removeFromSuperview()
+//            self.collectionView?.superview?.addSubview(self.backPreviewPack)
+//        }) { (finished) in
+//            //Do after
+//        }
+        
     }
     
     func addBlurView(collectionView :UICollectionView) {
