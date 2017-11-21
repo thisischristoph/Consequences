@@ -140,12 +140,10 @@ class PackCollectionViewController: UICollectionViewController {
         
         let animation = UIViewPropertyAnimator(duration: 0.6, curve: .easeInOut)
         animation.addAnimations {
-            //self.previewPack.frame = self.tempCellRect
             self.previewPack.center.x = self.tempCellRect.midX
             self.previewPack.center.y = self.tempCellRect.midY
             self.blurEffectView.alpha = 0
             self.previewPack.transform = CGAffineTransform.identity
-            //self.previewPack.transform = CGAffineTransform(scaleX: 1, y: 1)
         }
         animation.addCompletion {_ in
             cell.backgroundPack.isHidden = false
