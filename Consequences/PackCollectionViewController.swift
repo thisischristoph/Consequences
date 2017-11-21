@@ -138,20 +138,27 @@ class PackCollectionViewController: UICollectionViewController {
         print("Working")
         let cell = collectionView?.cellForItem(at: self.cellRecordIndexPath) as! PackCollectionViewCell
         
-        let animation = UIViewPropertyAnimator(duration: 0.6, curve: .easeInOut)
-        animation.addAnimations {
+        let moveAnimation = UIViewPropertyAnimator(duration: 0.6, curve: .easeInOut)
+        let blurAnimation = UIViewPropertyAnimator(duration: 0.3, curve: .easeInOut)
+        moveAnimation.addAnimations {
             self.previewPack.center.x = self.tempCellRect.midX
             self.previewPack.center.y = self.tempCellRect.midY
-            self.blurEffectView.alpha = 0
             self.previewPack.transform = CGAffineTransform.identity
         }
-        animation.addCompletion {_ in
+        blurAnimation.addAnimations {
+            self.blurEffectView.alpha = 0
+        }
+        moveAnimation.addCompletion {_ in
             cell.backgroundPack.isHidden = false
             cell.foregroundPack.isHidden = false
+            blurAnimation.startAnimation()
+        }
+        blurAnimation.addCompletion {_ in
             self.blurEffectView.removeFromSuperview()
             self.previewPack.removeFromSuperview()
         }
-        animation.startAnimation()
+        moveAnimation.startAnimation()
+    
     }
     
     func disableUserInteraction() {
