@@ -26,7 +26,7 @@ class PackCollectionViewController: UICollectionViewController {
     let blurTapRecognizer = UITapGestureRecognizer()
     var absoluteForgroundFrame = CGPoint()
     var tempCellRect = CGRect()
-    var showingCard: Bool = false
+    let shiftMultiplier = 0.3
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -56,7 +56,6 @@ class PackCollectionViewController: UICollectionViewController {
         return 1
     }
 
-
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return 11
     }
@@ -71,7 +70,6 @@ class PackCollectionViewController: UICollectionViewController {
     }
     
     func updateVisibleCells(visibleCells:[PackCollectionViewCell]){
-        let shiftMultiplier = 0.3
         for cell in visibleCells {
             let absoluteframe = cell.superview?.convert(cell.frame.origin, to: nil)
             let cellScreenPercentage = (((((absoluteframe?.y)! + (cellSize.height/2)) / (screenSize.size.height))*100)-50) * CGFloat(shiftMultiplier)
@@ -80,90 +78,46 @@ class PackCollectionViewController: UICollectionViewController {
     }
     
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        isAnimating()
         print("section: \(indexPath.section)")
         print("row: \(indexPath.row)")
         let cell = collectionView.cellForItem(at: indexPath) as! PackCollectionViewCell
         cellRecordIndexPath = indexPath
-
         addBlurView(collectionView: collectionView)
-        UIView.animate(withDuration: 0.3, animations: {
-            self.animating = true
-            self.blurEffectView.alpha = 1.0
-            self.disableUserInteraction()
-        }, completion: {
-            (value: Bool) in
-            self.animating = false
-            self.enableUserInteraction()
-        })
-        
-        
-        // Add Cell Copy
-        absoluteForgroundFrame = (cell.foregroundPack.superview?.convert(cell.foregroundPack.frame.origin, to: nil))!
-        tempCellRect = CGRect(x: absoluteForgroundFrame.x, y: absoluteForgroundFrame.y, width: cell.foregroundPack.frame.width, height: cell.foregroundPack.frame.height)
-        previewPack.frame = tempCellRect
-        previewPack.layer.cornerRadius = cell.foregroundPack.layer.cornerRadius
-        previewPack.backgroundColor = .green
-        collectionView.superview?.addSubview(previewPack)
-        
-        //Hide cell behind
-        cell.backgroundPack.isHidden = true
-        cell.foregroundPack.isHidden = true
+        showBlurView()
+        addPreviewPack(cell: cell)
+        hideCellContents(cell: cell)
         self.disableUserInteraction()
-        self.animating = true
-        
-        
-        let animation = UIViewPropertyAnimator(duration: 0.6, curve: .easeInOut)
-        animation.addAnimations {
-            self.previewPack.center.x = screenSize.width/2
-            self.previewPack.center.y = screenSize.height/2
-            self.previewPack.transform = CGAffineTransform(scaleX: 2, y: 2)
-        }
-        animation.addCompletion {_ in
-            self.animating = false
-            self.enableUserInteraction()
-            self.flipCardAnimation()
-            
-        }
-        animation.startAnimation()
+        animateCell()
     }
     
     func flipCardAnimation(){
-        if !showingCard {
-            showingCard = true
-            backPreviewPack.frame = CGRect(x: 0, y: 0, width: self.previewPack.frame.width/2, height: self.previewPack.frame.height/2)
-            backPreviewPack.layer.cornerRadius = self.previewPack.layer.cornerRadius
-            backPreviewPack.backgroundColor = .blue
-            backPreviewPack.isHidden = true
-            previewPack.addSubview(backPreviewPack)
-            
-            let transitionOptions = UIViewAnimationOptions.transitionFlipFromLeft
-            UIView.transition(with: previewPack, duration: 1.5, options: transitionOptions, animations: {
-                self.backPreviewPack.isHidden = false
-            }) { (finished) in
-                //Do after
-            }
-        }else{
-            showingCard = false
-            
-        }
-        
-        
-    }
-    
-    func addBlurView(collectionView :UICollectionView) {
-        blurEffectView.effect = blurEffect
-        blurEffectView.frame = self.view.bounds
-        blurEffectView.tag = 1
-        blurEffectView.isUserInteractionEnabled = true
-        blurEffectView.addGestureRecognizer(blurTapRecognizer)
-        collectionView.superview?.addSubview(blurEffectView)
-        blurEffectView.alpha = 0
+        isAnimating()
+        createBackPreviewPack()
+        previewPackTransition()
     }
     
     @objc func reverseCellSelect(_ sender: UITapGestureRecognizer) {
-        print("Working")
-        let cell = collectionView?.cellForItem(at: self.cellRecordIndexPath) as! PackCollectionViewCell
+        if !self.animating {
+            isAnimating()
+            transitionBack()
+        }
         
+    }
+    
+    func transitionBack(){
+        let transitionOptions = UIViewAnimationOptions.transitionFlipFromLeft
+        UIView.transition(with: previewPack, duration: 1.5, options: transitionOptions, animations: {
+            self.backPreviewPack.isHidden = true
+            self.backPreviewPack.removeFromSuperview()
+        }) { (finished) in
+            self.moveBack()
+        }
+    }
+    
+    func moveBack(){
+        //Do after
+        let cell = self.collectionView?.cellForItem(at: self.cellRecordIndexPath) as! PackCollectionViewCell
         let moveAnimation = UIViewPropertyAnimator(duration: 0.6, curve: .easeInOut)
         let blurAnimation = UIViewPropertyAnimator(duration: 0.3, curve: .easeInOut)
         moveAnimation.addAnimations {
@@ -175,16 +129,15 @@ class PackCollectionViewController: UICollectionViewController {
             self.blurEffectView.alpha = 0
         }
         moveAnimation.addCompletion {_ in
-            cell.backgroundPack.isHidden = false
-            cell.foregroundPack.isHidden = false
+            self.showCellContents(cell: cell)
             blurAnimation.startAnimation()
         }
         blurAnimation.addCompletion {_ in
             self.blurEffectView.removeFromSuperview()
             self.previewPack.removeFromSuperview()
+            self.notAnimating()
         }
         moveAnimation.startAnimation()
-    
     }
     
     func disableUserInteraction() {
@@ -197,8 +150,83 @@ class PackCollectionViewController: UICollectionViewController {
         self.previewPack.isUserInteractionEnabled = true
     }
     
-    func addPreviewPack(){
-        
+    func isAnimating(){
+        self.animating = true
     }
     
+    func notAnimating(){
+        self.animating = false
+    }
+    
+    func addBlurView(collectionView :UICollectionView) {
+        blurEffectView.effect = blurEffect
+        blurEffectView.frame = self.view.bounds
+        blurEffectView.tag = 1
+        blurEffectView.isUserInteractionEnabled = true
+        blurEffectView.addGestureRecognizer(blurTapRecognizer)
+        collectionView.superview?.addSubview(blurEffectView)
+        blurEffectView.alpha = 0
+    }
+    
+    func showBlurView(){
+        UIView.animate(withDuration: 0.3, animations: {
+            self.blurEffectView.alpha = 1.0
+            self.disableUserInteraction()
+        }, completion: {
+            (value: Bool) in
+            self.animating = false
+            self.enableUserInteraction()
+        })
+    }
+    
+    func addPreviewPack(cell: PackCollectionViewCell){
+        absoluteForgroundFrame = (cell.foregroundPack.superview?.convert(cell.foregroundPack.frame.origin, to: nil))!
+        tempCellRect = CGRect(x: absoluteForgroundFrame.x, y: absoluteForgroundFrame.y, width: cell.foregroundPack.frame.width, height: cell.foregroundPack.frame.height)
+        previewPack.frame = tempCellRect
+        previewPack.layer.cornerRadius = cell.foregroundPack.layer.cornerRadius
+        previewPack.backgroundColor = .green
+        collectionView?.superview?.addSubview(previewPack)
+    }
+    
+    func hideCellContents(cell: PackCollectionViewCell){
+        cell.backgroundPack.isHidden = true
+        cell.foregroundPack.isHidden = true
+    }
+    
+    func showCellContents(cell: PackCollectionViewCell){
+        cell.backgroundPack.isHidden = false
+        cell.foregroundPack.isHidden = false
+    }
+    
+    func animateCell(){
+        let animation = UIViewPropertyAnimator(duration: 0.6, curve: .easeInOut)
+        animation.addAnimations {
+            self.previewPack.center.x = screenSize.width/2
+            self.previewPack.center.y = screenSize.height/2
+            self.previewPack.transform = CGAffineTransform(scaleX: 2, y: 2)
+        }
+        animation.addCompletion {_ in
+            self.animating = false
+            self.enableUserInteraction()
+            self.flipCardAnimation()
+        }
+        animation.startAnimation()
+    }
+    
+    func createBackPreviewPack(){
+        backPreviewPack.frame = CGRect(x: 0, y: 0, width: self.previewPack.frame.width/2, height: self.previewPack.frame.height/2)
+        backPreviewPack.layer.cornerRadius = self.previewPack.layer.cornerRadius
+        backPreviewPack.backgroundColor = .blue
+        backPreviewPack.isHidden = true
+        previewPack.addSubview(backPreviewPack)
+    }
+    
+    func previewPackTransition(){
+        let transitionOptions = UIViewAnimationOptions.transitionFlipFromLeft
+        UIView.transition(with: previewPack, duration: 1.5, options: transitionOptions, animations: {
+            self.backPreviewPack.isHidden = false
+        }) { (finished) in
+            self.notAnimating()
+        }
+    }
 }
