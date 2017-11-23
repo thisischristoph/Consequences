@@ -20,12 +20,13 @@ class PackCollectionViewController: UICollectionViewController {
     var cellRecordIndexPath = IndexPath()
     let blurEffect = UIBlurEffect(style: UIBlurEffectStyle.regular)
     let blurEffectView = UIVisualEffectView()
-    let previewPack = UIImageView()
+    let previewPack = UIView()
     var backPreviewPack = UIImageView()
     var animating = false
     let blurTapRecognizer = UITapGestureRecognizer()
     var absoluteForgroundFrame = CGPoint()
     var tempCellRect = CGRect()
+    var showingCard: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -127,16 +128,25 @@ class PackCollectionViewController: UICollectionViewController {
     }
     
     func flipCardAnimation(){
-//        backPreviewPack.frame = self.previewPack.frame
-//        backPreviewPack.layer.cornerRadius = self.previewPack.layer.cornerRadius
-//        backPreviewPack.backgroundColor = .blue
-//        let transitionOptions = UIViewAnimationOptions.transitionFlipFromLeft
-//        UIView.transition(with: (self.collectionView?.superview)!, duration: 0.5, options: transitionOptions, animations: {
-//            self.previewPack.removeFromSuperview()
-//            self.collectionView?.superview?.addSubview(self.backPreviewPack)
-//        }) { (finished) in
-//            //Do after
-//        }
+        if !showingCard {
+            showingCard = true
+            backPreviewPack.frame = CGRect(x: 0, y: 0, width: self.previewPack.frame.width/2, height: self.previewPack.frame.height/2)
+            backPreviewPack.layer.cornerRadius = self.previewPack.layer.cornerRadius
+            backPreviewPack.backgroundColor = .blue
+            backPreviewPack.isHidden = true
+            previewPack.addSubview(backPreviewPack)
+            
+            let transitionOptions = UIViewAnimationOptions.transitionFlipFromLeft
+            UIView.transition(with: previewPack, duration: 1.5, options: transitionOptions, animations: {
+                self.backPreviewPack.isHidden = false
+            }) { (finished) in
+                //Do after
+            }
+        }else{
+            showingCard = false
+            
+        }
+        
         
     }
     
